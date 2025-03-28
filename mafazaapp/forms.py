@@ -169,7 +169,38 @@ class UserEditForm(UserChangeForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'username', 'email', 'phone_number', 'address', 'country']
-
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+            'username': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+            'email': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',  
+                'rows': 1,  # Adjust the height
+                'cols': 50,  # Optional, adjust width if necessary
+                'style': 'resize: none;'  # Prevents resizing (optional)
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control  ',
+              
+            }),
+        }
 class PasswordEditForm(PasswordChangeForm):
     class Meta:
         fields = ['old_password', 'new_password1', 'new_password2']              

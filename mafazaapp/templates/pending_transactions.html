@@ -399,50 +399,70 @@
             <div class="card-body px-0 pt-0 pb-2">
               <div class="table-responsive p-0">
                 
-                <form method="POST" enctype="multipart/form-data" class="card p-4">
+                <form method="post" enctype="multipart/form-data">
                   {% csrf_token %}
-      
-                  <!-- First Row -->
-                  <div class="row g-3">
-                    <div class="col-lg-3 col-md-6 col-sm-12">
-                      
-                      <div class="input-group">
-                        {% comment %} <span class="input-group-text"></span> {% endcomment %}
-                        <input type="text" class="form-control" value="{{ today_date }}" readonly>
-                      </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 col-sm-12">
-                      {{ form.amount }}
-                    </div>
-                    <div class="col-lg-3 col-md-6 col-sm-12">
-                      
-                      {{ form.project }}
-                    </div>
-                    <div class="col-lg-3 col-md-6 col-sm-12">
-                      {{ form.transaction_type }}
-                    </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.user.label }}</label>
+                      {{ form.user }}
+                      {% if form.user.errors %}
+                          <div class="text-danger">{{ form.user.errors }}</div>
+                      {% endif %}
                   </div>
                   
-      
-                  <!-- Second Row -->
-                  <div class="row g-3 mt-3">
-                    <div class="col-lg-6 col-md-12">
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.project.label }}</label>
+                      {{ form.project }}
+                      {% if form.project.errors %}
+                          <div class="text-danger">{{ form.project.errors }}</div>
+                      {% endif %}
+                  </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.amount.label }}</label>
+                      {{ form.amount }}
+                      {% if form.amount.errors %}
+                          <div class="text-danger">{{ form.amount.errors }}</div>
+                      {% endif %}
+                  </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.transaction_type.label }}</label>
+                      {{ form.transaction_type }}
+                      {% if form.transaction_type.errors %}
+                          <div class="text-danger">{{ form.transaction_type.errors }}</div>
+                      {% endif %}
+                  </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.transaction_date.label }}</label>
+                      {{ form.transaction_date }}
+                      {% if form.transaction_date.errors %}
+                          <div class="text-danger">{{ form.transaction_date.errors }}</div>
+                      {% endif %}
+                  </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.narration.label }}</label>
                       {{ form.narration }}
-                    </div>
-                    <div class="col-lg-6 col-md-12">
-                      
+                      {% if form.narration.errors %}
+                          <div class="text-danger">{{ form.narration.errors }}</div>
+                      {% endif %}
+                  </div>
+                  
+                  <div class="form-group mb-3">
+                      <label class="form-label">{{ form.receipt.label }}</label>
                       {{ form.receipt }}
-                    </div>
+                      {% if form.receipt.errors %}
+                          <div class="text-danger">{{ form.receipt.errors }}</div>
+                      {% endif %}
                   </div>
-      
-                  <!-- Submit Button -->
-                  <div class="text-end mt-4">
-                    <button type="submit" class="badge badge-sm kala border-0 me-3"> Submit</button>
-                    
-                     
-                   
-                  </div>
-                </form>
+                  
+                  <button type="submit" name="create_transaction" class="btn btn-primary w-100">
+                      Create Transaction
+                  </button>
+              </form>
+          </div>
               </div>
             </div>
           </div>
@@ -460,24 +480,34 @@
               <div class="table-responsive p-0">
                   <table class="table align-items-center justify-content-center mb-0">
                       <thead>
-                          <tr>
-                              <th>Date</th>
-                              <th>User</th>
-                              <th>Project</th>
-                              <th>Type</th>
-                              <th>Amount</th>
-                              <th>Status</th>
-                          </tr>
+                        <tr>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">User</th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project</th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Amount</th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Type</th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Date</th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
+                      </tr>
                       </thead>
                       <tbody>
-                        {% for transaction in pending_transactions %}
+                        {% for transaction in pending_page_obj %}
                           <tr>
                             
-                              <td>{{ transaction.transaction_date|date:"d-M-Y" }}</td>
-                              <td>{{ transaction.user.username }}</td>
-                              <td>{{ transaction.project.project_name }}</td>
-                              <td>{{ transaction.transaction_type|title }}</td>
-                              <td>{{ transaction.amount }} AED</td>
+                            <td class="text-sm font-weight-bold ps-4">
+                              {{ transaction.user.get_full_name }}
+                          </td>
+                          <td class="text-sm">
+                              {{ transaction.project.project_name }}
+                          </td>
+                          <td class="text-sm">
+                              {{ transaction.amount }}
+                          </td>
+                          <td class="text-sm text-capitalize">
+                              {{ transaction.transaction_type }}
+                          </td>
+                          <td class="text-sm">
+                              {{ transaction.transaction_date|date:"M d, Y" }}
+                          </td>
                               <td>
                                   {% if transaction.status == "pending" %}
                                       <span class="badge gold">Pending</span>

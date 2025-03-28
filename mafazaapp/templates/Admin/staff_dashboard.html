@@ -550,7 +550,9 @@
           <h6 class="mb-0 headd">Recent Transactions</h6>
           <div class="d-flex align-items-center">
             <div class="input-group me-3">
-              <span class="input-group-text text-body"><i class="fas fa-search" aria-hidden="true"></i></span>
+              <span class="input-group-text text-body">
+                <i class="fas fa-search" aria-hidden="true"></i>
+              </span>
               <input type="text" class="form-control bg-gray" placeholder="Type here...">
             </div>
             <button type="button" class="badge badge-sm gold border-0 me-3">PDF</button>
@@ -572,24 +574,17 @@
             </tr>
           </thead>
           <tbody>
-            {% for transaction in all_transactions %}
+            {% for transaction in page_obj %}
             <tr>
-              <!-- Date -->
               <td class="text-center text-xxs font-weight-bolder align-middle">
                 {{ transaction.transaction_date|localtime|date:"F j, Y H:i:s" }}
               </td>
-
-              <!-- User Name -->
               <td class="text-center text-xxs font-weight-bolder align-middle">
                 {{ transaction.user.get_full_name }}
               </td>
-
-              <!-- Project Name -->
               <td class="text-center text-xxs font-weight-bolder align-middle">
                 {{ transaction.project.project_name }}
               </td>
-
-              <!-- Debit (Withdrawals) -->
               <td class="text-center text-xxs font-weight-bolder align-middle">
                 {% if transaction.transaction_type == 'withdrawal' %}
                   {{ transaction.amount }}
@@ -597,8 +592,6 @@
                   -
                 {% endif %}
               </td>
-
-              <!-- Credit (Investments) -->
               <td class="text-center text-xxs font-weight-bolder align-middle">
                 {% if transaction.transaction_type == 'investment' %}
                   {{ transaction.amount }}
@@ -606,22 +599,71 @@
                   -
                 {% endif %}
               </td>
-
-              <!-- Status with Action Buttons -->
-              <td class="text-center text-xx font-weight-bolder align-middle">
+              {% comment %} <td class="text-center text-xx font-weight-bolder align-middle">
                 {% if transaction.status == "pending" %}
-                  <a href="{% url 'update_transaction_status' transaction.id 'approved' %}" class="badge badge-sm kaala border-0 me-3">
-                    Approve
-                  </a>
-                  <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" class="badge badge-sm kala border-0 me-3">
-                    Reject
-                  </a>
+                  <a href="{% url 'update_transaction_status' transaction.id 'approved' %}" 
+                     class="badge badge-sm kaala border-0 me-3">Approve</a>
+                  <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" 
+                     class="badge badge-sm kala border-0 me-3">Reject</a>
                 {% elif transaction.status == "approved" %}
                   <span class="badge badge-sm kala border-0 me-3">Approved</span>
                 {% elif transaction.status == "rejected" %}
                   <span class="badge badge-sm bg-gradient-danger">Rejected</span>
                 {% endif %}
-              </td>
+              </td> {% endcomment %}
+
+              {% comment %} <td class="text-center text-xx font-weight-bolder align-middle">
+                {% if transaction.status == "pending" %}
+                    {% if transaction.transaction_type == "withdrawal" %}
+                        <!-- Show Receipt Upload for Withdrawals -->
+                        <form action="{% url 'upload_receipt' transaction.id %}" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="file" name="receipt" required>
+                            <button type="submit" class="badge badge-sm kaala border-0 me-3">Upload & Approve</button>
+                        </form>
+                    {% else %}
+                        <!-- Normal Approve/Reject Links -->
+                        <a href="{% url 'update_transaction_status' transaction.id 'approved' %}" 
+                           class="badge badge-sm kaala border-0 me-3">Approve</a>
+                        <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" 
+                           class="badge badge-sm kala border-0 me-3">Reject</a>
+                    {% endif %}
+                {% elif transaction.status == "approved" %}
+                    <span class="badge badge-sm bg-success border-0 me-3">Approved</span>
+                {% elif transaction.status == "rejected" %}
+                    <span class="badge badge-sm bg-gradient-danger">Rejected</span>
+                {% endif %}
+            </td>
+             {% endcomment %}
+
+             <form id="receipt-form-{{ transaction.id }}" 
+      action="{% url 'upload_receipt' transaction.id %}" 
+      method="POST" 
+      enctype="multipart/form-data" 
+      style="display: none;">
+    {% csrf_token %}
+    <input type="file" name="receipt" id="file-input-{{ transaction.id }}" accept="image/*" hidden required>
+</form>
+
+<td class="text-center text-xx font-weight-bolder align-middle">
+    {% if transaction.status == "pending" %}
+        <!-- Approve Button -->
+        <button class="badge badge-sm kaala border-0 me-3" 
+                onclick="approveTransaction('{{ transaction.id }}')">
+            Approve
+        </button>
+
+        <!-- Reject Button -->
+        <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" 
+           class="badge badge-sm kala border-0 me-3">
+            Reject
+        </a>
+    {% elif transaction.status == "approved" %}
+        <span class="badge badge-sm kala border-0 me-3">Approved</span>
+    {% elif transaction.status == "rejected" %}
+        <span class="badge badge-sm bg-gradient-danger">Rejected</span>
+    {% endif %}
+</td>
             </tr>
             {% empty %}
             <tr>
@@ -630,6 +672,56 @@
             {% endfor %}
           </tbody>
         </table>
+
+        <!-- Pagination Controls -->
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-container mt-3">
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1" aria-label="First">
+                    <i class="fas fa-angle-double-left"></i>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                    <i class="fas fa-angle-left"></i>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                    <i class="fas fa-angle-right"></i>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                    <i class="fas fa-angle-double-right"></i>
+                  </a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          <div class="text-center text-sm text-muted">
+            Showing items {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -641,6 +733,21 @@
           <div class="row align-items-center justify-content-lg-between">
             <div class="col-lg-6 mb-lg-0 mb-4">
               <div class="copyright text-center text-sm text-muted text-lg-start">
+                <script>
+                  function approveTransaction(transactionId) {
+                      let fileInput = document.getElementById(`file-input-${transactionId}`);
+                      
+                      // Open file selection dialog
+                      fileInput.click();
+                  
+                      // When a file is selected, submit the form
+                      fileInput.onchange = function() {
+                          if (fileInput.files.length > 0) {
+                              document.getElementById(`receipt-form-${transactionId}`).submit();
+                          }
+                      };
+                  }
+                  </script>
                 <script>
                   function fetchNotifications() {
                       fetch('/get-notifications/')

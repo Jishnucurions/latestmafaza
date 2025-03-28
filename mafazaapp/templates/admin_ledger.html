@@ -405,83 +405,133 @@
     </nav>
     <!-- End Navbar -->
     <div class="container-fluid py-4">
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header pb-0">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 siz">User Ledger</h6>
-                            <div class="col-lg-3 col-md-3 col-sm-12 col-10 mt-2 mt-md-0">
-                                <form method="GET">
-                                    <select name="user_type" class="form-select w-auto" onchange="this.form.submit()">
-                                        <option value="" {% if not user_type %}selected{% endif %}>All</option>
-                                        <option value="Admin" {% if user_type == 'Admin' %}selected{% endif %}>Admin</option>
-                                        <option value="User" {% if user_type == 'User' %}selected{% endif %}>User</option>
-                                    </select>
-                                </form>
-                            </div>
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 siz">User Ledger</h6>
+                        <div class="col-lg-3 col-md-3 col-sm-12 col-10 mt-2 mt-md-0">
+                            <form method="GET">
+                                <select name="user_type" class="form-select w-auto" onchange="this.form.submit()">
+                                    <option value="" {% if not user_type %}selected{% endif %}>All</option>
+                                    <option value="Admin" {% if user_type == 'Admin' %}selected{% endif %}>Admin</option>
+                                    <option value="User" {% if user_type == 'User' %}selected{% endif %}>User</option>
+                                </select>
+                                <input type="hidden" name="page" value="1">  <!-- Reset to page 1 when filtering -->
+                            </form>
                         </div>
                     </div>
-                    <div class="card-body px-0 pb-2">
-                        <div class="table-responsive">
-                            <table class="table align-items-center mb-0">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Username</th>
+                </div>
+                <div class="card-body px-0 pb-2">
+                    <div class="table-responsive">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Username</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Investment</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Returns</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Withdrawals</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">View Ledger</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Add/Edit Documents</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in page_obj %}
+                                <tr>
+                                    <td class="align-middle text-center">
+                                        <span class="text-xs font-weight-bold">{{ entry.transaction.user.username|default:"N/A" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-xs font-weight-bold">{{ entry.project_name|default:"N/A" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-xs font-weight-bold">{{ entry.principal_investment|default:"0.00" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-xs font-weight-bold">{{ entry.returns|default:"0.00" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-xs font-weight-bold">{{ entry.withdrawal|default:"0.00" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        {% if entry.receipt %}
+                                            <a href="{{ entry.receipt.url }}" target="_blank" class="badge badge-sm kala border-0">View Receipt</a>
+                                        {% else %}
+                                            <span class="text-muted">No Receipt</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <a href="{% url 'admin_user_documents' entry.transaction.user.id %}" 
+                                           class="badge badge-sm kaala border-0">
+                                           User Docs
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No approved transactions found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project</th>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Investment</th>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Returns</th>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Withdrawals</th>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">View Ledger</th>
-                                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Add/Edit Documents</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for entry in ledger_entries %}
-                                    <tr>
-                                        <td class="align-middle text-center">
-                                            <span class="text-xs font-weight-bold">  {{ entry.transaction.user.username|default:"N/A" }}</span>
-                                        </td>
-                                        
-                                        <td class="align-middle text-center">
-                                            <span class="text-xs font-weight-bold">{{ entry.project_name|default:"N/A" }}</span>
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <span class="text-xs font-weight-bold">{{ entry.principal_investment|default:"0.00" }}</span>
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <span class="text-xs font-weight-bold">{{ entry.returns|default:"0.00" }}</span>
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <span class="text-xs font-weight-bold">{{ entry.withdrawal|default:"0.00" }}</span>
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <button type="button" class="badge badge-sm kala border-0">Receipt</button>
-                                        </td>
-                                        {% comment %} <td class="align-middle text-center">
-                                            <button type="button" class="badge badge-sm bg-gradient-primary border-0">User Docs</button>
-                                        </td> {% endcomment %}
-                                        <td class="align-middle text-center">
-                                          <a href="{% url 'admin_user_documents' entry.transaction.user.id %}" 
-                                             class="badge badge-sm kaala border-0">
-                                             User Docs
-                                          </a>
-                                      </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="6" class="text-center">No approved transactions found.</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                    <!-- Pagination Controls -->
+                    {% if page_obj.paginator.num_pages > 1 %}
+                    <div class="pagination-container mt-4 px-4">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1&user_type={{ user_type }}" aria-label="First">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&user_type={{ user_type }}" aria-label="Previous">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}&user_type={{ user_type }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&user_type={{ user_type }}" aria-label="Next">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&user_type={{ user_type }}" aria-label="Last">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        <div class="text-center text-sm text-muted mt-2">
+                            Showing items {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+</div>
     
    
      

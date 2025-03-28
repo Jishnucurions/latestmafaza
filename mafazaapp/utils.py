@@ -726,3 +726,11 @@ def generate_missed_returns():
             )
             print(f"DEBUG: Added return at {correct_next_time} for {transaction.project.project_name}. New balance: {new_balance}")
             correct_next_time += return_periods[assigned_project.return_period]
+
+
+
+# dddd
+# dfg
+# ghj
+# jk
+# sdfg

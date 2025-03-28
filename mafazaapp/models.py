@@ -96,6 +96,7 @@ class Transaction(models.Model):
     return_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)  # Calculated return
     transaction_date = models.DateTimeField(default=timezone.now, editable=True) 
     
+    
     def save(self, *args, **kwargs):
         # If the transaction is new and created by a regular user, set the date automatically
         if not self.pk and not self.user.groups.filter(name="Admin").exists():

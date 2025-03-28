@@ -9,11 +9,13 @@
   <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
   <title>
-    Soft UI Dashboard 3 by Creative Tim
+    Mafaza Transactions
   </title>
   <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <script src="{% static 'js/soft-ui-dashboard' %}" crossorigin="anonymous"></script>
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <script src="{% static 'js/soft-ui-dashboard.min.js' %}" crossorigin="anonymous"></script>
+  <script defer data-site="YOUR_DOMAIN_HERE" src="https://api.nepcha.com/js/nepcha-analytics.js"></script>
   <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
   <style>
     .kala{
@@ -88,7 +90,8 @@
       </a>
     </div>
     <hr class="horizontal dark mt-0">
-    {% comment %} <div class="collapse navbar-collapse  w-auto " id="sidenav-collapse-main"> {% endcomment %}
+    
+     <!-- Add this container -->
       <ul class="navbar-nav">
         <li class="nav-item">
           <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'ledger_view' %}">
@@ -711,6 +714,8 @@ observer.observe(tableBody, { childList: true });
  <script src="{% static 'js/core/bootstrap.min.js'%}"></script>
  <script src="{% static 'js/plugins/perfect-scrollbar.min.js'%}"></script>
  <script src="{% static 'js/plugins/smooth-scrollbar.min.js'%}"></script>
+
+  
  <script>
    var win = navigator.platform.indexOf('Win') > -1;
    if (win && document.querySelector('#sidenav-scrollbar')) {

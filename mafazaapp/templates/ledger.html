@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
   <title>
-    Soft UI Dashboard 3 by Creative Tim
+    Mafaza Ledger
   </title>
   <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
   <!-- html2pdf CDN -->
@@ -602,9 +602,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for ledger_entry in ledger_entries %}
+                            {% for ledger_entry in page_obj %}
                             <tr>
-                                {% comment %} <td class="text-sm">{{ ledger_entry.date|date:"d M Y" }}</td>  {% endcomment %}
                                 <td class="text-sm">{{ ledger_entry.date }}</td> 
                                 <td class="text-sm">{{ ledger_entry.project_name }}</td>
                                 <td class="text-sm">{{ ledger_entry.narration }}</td>
@@ -612,17 +611,43 @@
                                 <td class="text-sm">{{ ledger_entry.returns }}</td>
                                 <td class="text-sm">{{ ledger_entry.withdrawal }}</td>
                                 <td class="text-sm">{{ ledger_entry.balance }}</td>
-                                <td class="text-sm">
+                                {% comment %} <td class="text-sm">
                                     {% if ledger_entry.receipt %}
                                         <a href="{{ ledger_entry.receipt.url }}" target="_blank" class="text-primary">View Receipt</a>
                                     {% else %}
                                         N/A
                                     {% endif %}
-                                </td>
+                                </td> {% endcomment %}
+                                <td class="text-sm">
+                                  {% if ledger_entry.receipt %}
+                                      <a href="{{ ledger_entry.receipt.url }}" target="_blank" class="text-primary">View Receipt</a>
+                                  {% else %}
+                                      N/A
+                                  {% endif %}
+                              </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+    
+                <!-- Pagination controls -->
+                <div class="pagination justify-content-center mt-4">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="btn btn-sm btn-outline-primary">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline-primary">previous</a>
+                        {% endif %}
+    
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                        </span>
+    
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline-primary">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-sm btn-outline-primary">last &raquo;</a>
+                        {% endif %}
+                    </span>
                 </div>
             </div>
         </div>

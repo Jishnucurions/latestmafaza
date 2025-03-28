@@ -18,7 +18,7 @@ from django.urls import path
 
 from django.contrib.auth.views import LogoutView
 
-from mafazaapp.views import Adminuser, Home, Myproject, admin_dashboard, admin_ledger, admin_view_user_documents,  assign_project, change_password,  create_transaction_view,  custom_login, delete_document, edit_profile, forgot_password,investment_projects, ledger_view, pending_approval, pending_transactions_view,project_list, signup, staff_create_transaction,staff_dashboard, toggle_project_status, update_transaction_status, upload_document, user_logout, view_documents
+from mafazaapp.views import Adminuser, Home, Myproject, admin_dashboard, admin_ledger, admin_view_user_documents,  assign_project, change_password,  create_transaction_view,  custom_login, delete_document, edit_profile, forgot_password,investment_projects, ledger_view, pending_approval, project_list, signup,staff_dashboard, staff_transactions_view, toggle_project_status, update_transaction_status, upload_document, upload_receipt, user_logout, view_documents
 # from .views import create_transaction,transaction_list,update_transaction_status,pending_approval,AdminLedger,Myproject,create_staff_transaction,toggle_project_status,edit_profile
 # from .views import update_return_amount
 
@@ -35,7 +35,7 @@ urlpatterns = [
      path('forgot-password/', forgot_password, name='forgot_password'),
     path('change-password/', change_password, name='change_password'),
     path('documents/delete/<int:doc_id>/', delete_document, name='delete_document'),
-    path('pend',pending_transactions_view , name='pend'),
+    path('pend',staff_transactions_view, name='pend'),
      
      
     
@@ -44,8 +44,8 @@ urlpatterns = [
    
     # path("create_transaction_form/",create_transaction_form,name="create_transaction_form"),
     
-      
-    path('staff_create_transaction/', staff_create_transaction, name='staff_create_transaction'),
+       path('upload_receipt/<int:transaction_id>/', upload_receipt, name='upload_receipt'),
+    # path('staff_create_transaction/', staff_create_transaction, name='staff_create_transaction'),
     path('transactions/', create_transaction_view, name='create_transaction'),
     path('ledger/', ledger_view, name='ledger_view'),
      path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),

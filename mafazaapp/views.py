@@ -359,52 +359,76 @@ def assign_project(request, user_id):
 
 from django.db.models import Avg, Sum
 
+# @staff_member_required
+# def staff_dashboard(request):
+#     assigned_projects = AssignedProject.objects.all()
+
+#     # Fetch all transactions
+#     all_transactions = Transaction.objects.select_related('user', 'project').all().order_by('-transaction_date')
+
+#     # Calculate required totals from UserLedger
+#     total_investments = UserLedger.objects.aggregate(Sum('principal_investment'))['principal_investment__sum'] or 0
+#     total_returns = UserLedger.objects.aggregate(Sum('returns'))['returns__sum'] or 0
+#     total_withdrawals = UserLedger.objects.aggregate(Sum('withdrawal'))['withdrawal__sum'] or 0
+#     total_projects = InvestmentProject.objects.count()
+
+#     # Calculate total ROI (average rate_of_interest)
+#     total_roi = AssignedProject.objects.aggregate(Avg('rate_of_interest'))['rate_of_interest__avg'] or 0
+
+#     return render(request, "Admin/staff_dashboard.html", {
+#         "assigned_projects": assigned_projects,
+#         "all_transactions": all_transactions,
+#         "total_investments": total_investments,
+#         "total_returns": total_returns,
+#         "total_withdrawals": total_withdrawals,
+#         "total_projects": total_projects,
+#         "total_roi": total_roi,
+#     })
+
+
+from django.core.paginator import Paginator
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Sum, Avg
+from .models import AssignedProject, Transaction, UserLedger, InvestmentProject
+
 @staff_member_required
 def staff_dashboard(request):
     assigned_projects = AssignedProject.objects.all()
 
-    # Fetch all transactions
-    all_transactions = Transaction.objects.select_related('user', 'project').all().order_by('-transaction_date')
+    # Fetch all transactions ordered by date (newest first)
+    all_transactions = Transaction.objects.select_related('user', 'project')\
+                                       .all()\
+                                       .order_by('-transaction_date')
+    
+    # Pagination with 2 items per page
+    paginator = Paginator(all_transactions, 2)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-    # Calculate required totals from UserLedger
-    total_investments = UserLedger.objects.aggregate(Sum('principal_investment'))['principal_investment__sum'] or 0
+    # Calculate dashboard metrics
+    total_investments = UserLedger.objects.aggregate(
+        Sum('principal_investment')
+    )['principal_investment__sum'] or 0
     total_returns = UserLedger.objects.aggregate(Sum('returns'))['returns__sum'] or 0
     total_withdrawals = UserLedger.objects.aggregate(Sum('withdrawal'))['withdrawal__sum'] or 0
     total_projects = InvestmentProject.objects.count()
+    total_roi = AssignedProject.objects.aggregate(
+        Avg('rate_of_interest')
+    )['rate_of_interest__avg'] or 0
 
-    # Calculate total ROI (average rate_of_interest)
-    total_roi = AssignedProject.objects.aggregate(Avg('rate_of_interest'))['rate_of_interest__avg'] or 0
-
-    return render(request, "Admin/staff_dashboard.html", {
+    context = {
         "assigned_projects": assigned_projects,
-        "all_transactions": all_transactions,
+        "page_obj": page_obj,  # This is the paginated data
         "total_investments": total_investments,
         "total_returns": total_returns,
         "total_withdrawals": total_withdrawals,
         "total_projects": total_projects,
         "total_roi": total_roi,
-    })
+    }
+    return render(request, "Admin/staff_dashboard.html", context)
 
 
 
-# @staff_member_required
-# def update_transaction_status(request, transaction_id):
-#     transaction = get_object_or_404(Transaction, id=transaction_id)
-
-#     if request.method == "POST":
-#         action = request.POST.get("action")
-#         if action == "approve":
-#             transaction.status = "approved"
-#             transaction.save()
-#             messages.success(request, f"Transaction {transaction.id} approved.")
-#         elif action == "reject":
-#             transaction.status = "rejected"
-#             transaction.save()
-#             messages.success(request, f"Transaction {transaction.id} rejected.")
-#         else:
-#             messages.error(request, "Invalid action.")
-
-#     return redirect("staff_dashboard")
 @staff_member_required
 def update_transaction_status(request, transaction_id, status):
     transaction = get_object_or_404(Transaction, id=transaction_id)
@@ -417,6 +441,62 @@ def update_transaction_status(request, transaction_id, status):
         messages.error(request, "Invalid status.")
     
     return redirect("staff_dashboard")
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Transaction
+
+# def upload_receipt(request, transaction_id):
+#     transaction = get_object_or_404(Transaction, id=transaction_id)
+
+#     if request.method == "POST" and request.FILES.get("receipt"):
+#         receipt_file = request.FILES["receipt"]
+        
+#         # Update transaction
+#         transaction.receipt = receipt_file
+#         transaction.status = "approved"
+#         transaction.save()
+
+#         # Update corresponding ledger entry
+#         ledger_entry = UserLedger.objects.filter(transaction=transaction).first()
+#         if ledger_entry:
+#             ledger_entry.receipt = receipt_file
+#             ledger_entry.save()
+
+#         messages.success(request, "Receipt uploaded and transaction approved successfully!")
+#         return redirect("ledger_view")
+
+#     messages.error(request, "Failed to upload receipt. Please try again.")
+#     return redirect("ledger_view")
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
+def upload_receipt(request, transaction_id):
+    transaction = get_object_or_404(Transaction, id=transaction_id)
+
+    if request.method == "POST" and request.FILES.get("receipt"):
+        receipt_file = request.FILES["receipt"]
+        
+        # Update transaction
+        transaction.receipt = receipt_file
+        transaction.status = "approved"
+        transaction.save()
+
+        # Update corresponding ledger entry
+        ledger_entry = UserLedger.objects.filter(transaction=transaction).first()
+        if ledger_entry:
+            ledger_entry.receipt = receipt_file
+            ledger_entry.save()
+
+        messages.success(request, "Transaction approved and receipt uploaded successfully!")
+        return redirect("ledger_view")
+
+    messages.error(request, "Failed to upload receipt. Please try again.")
+    return redirect("ledger_view")
+
+
 
 
 @login_required(login_url="/login/")
@@ -498,16 +578,42 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import UserDocument, UserLedger, CustomUser
 
+# @login_required
+# def admin_ledger(request):
+#     ledger_entries = UserLedger.objects.select_related('transaction__user').all().order_by('date')
+#     user_type = request.GET.get('user_type', '')
+    
+#     if user_type:
+#         ledger_entries = ledger_entries.filter(transaction__user__groups__name=user_type)
+    
+#     return render(request, "admin_ledger.html", {
+#         "ledger_entries": ledger_entries,
+#         "user_type": user_type
+#     })
+
+
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Avg
+from .models import UserLedger
+
 @login_required
 def admin_ledger(request):
-    ledger_entries = UserLedger.objects.select_related('transaction__user').all().order_by('date')
-    user_type = request.GET.get('user_type', '')
+    # Get base queryset
+    ledger_entries = UserLedger.objects.select_related('transaction__user').all().order_by('-date')
     
+    # Filter by user type if specified
+    user_type = request.GET.get('user_type', '')
     if user_type:
         ledger_entries = ledger_entries.filter(transaction__user__groups__name=user_type)
     
+    # Add pagination with 50 items per page
+    paginator = Paginator(ledger_entries, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "admin_ledger.html", {
-        "ledger_entries": ledger_entries,
+        "page_obj": page_obj,  # Changed from ledger_entries to page_obj
         "user_type": user_type
     })
 
@@ -643,27 +749,84 @@ from .utils import generate_missed_returns
 
 
 
+
+
+from django.core.paginator import Paginator
+
+# @login_required(login_url='login')
+# def ledger_view(request):
+#     generate_missed_returns()
+
+#     # Get all ledger entries
+#     ledger_entries = UserLedger.objects.filter(
+#         transaction__user=request.user,
+#         transaction__status='approved'
+#     ).order_by('-date')
+
+#     # Add pagination - 50 items per page
+#     paginator = Paginator(ledger_entries, 50)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+
+#     projects = AssignedProject.objects.filter(user=request.user)
+    
+#     total_investment = UserLedger.objects.filter(
+#         transaction__user=request.user,
+#         principal_investment__gt=0
+#     ).aggregate(total=Sum('principal_investment'))['total'] or Decimal('0.00')
+
+#     total_balance = Decimal('0.00')
+#     for project in projects:
+#         latest_ledger = UserLedger.objects.filter(
+#             transaction__user=request.user,
+#             project_name=project.project.project_name
+#         ).order_by('-date').first()
+#         if latest_ledger:
+#             total_balance += latest_ledger.balance
+
+#     avg_interest_rate = projects.aggregate(
+#         avg_rate=Avg('rate_of_interest')
+#     )['avg_rate'] or 0
+
+#     total_projects = projects.count()
+
+#     total_withdrawals = UserLedger.objects.filter(
+#         transaction__user=request.user,
+#         withdrawal__gt=0
+#     ).aggregate(total=Sum('withdrawal'))['total'] or Decimal('0.00')
+
+#     context = {
+#         'page_obj': page_obj,  # Changed from ledger_entries to page_obj
+#         'total_investment': total_investment,
+#         'total_balance': total_balance,
+#         'avg_interest_rate': avg_interest_rate,
+#         'total_projects': total_projects,
+#         'total_withdrawals': total_withdrawals,
+#     }
+
+#     return render(request, 'ledger.html', context)
 @login_required(login_url='login')
 def ledger_view(request):
-   
     generate_missed_returns()
 
-  
+    # Get all approved transactions
     ledger_entries = UserLedger.objects.filter(
         transaction__user=request.user,
         transaction__status='approved'
     ).order_by('-date')
 
+    # Add pagination - 50 items per page
+    paginator = Paginator(ledger_entries, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     projects = AssignedProject.objects.filter(user=request.user)
-    
     
     total_investment = UserLedger.objects.filter(
         transaction__user=request.user,
         principal_investment__gt=0
     ).aggregate(total=Sum('principal_investment'))['total'] or Decimal('0.00')
 
-  
     total_balance = Decimal('0.00')
     for project in projects:
         latest_ledger = UserLedger.objects.filter(
@@ -673,22 +836,19 @@ def ledger_view(request):
         if latest_ledger:
             total_balance += latest_ledger.balance
 
-   
     avg_interest_rate = projects.aggregate(
         avg_rate=Avg('rate_of_interest')
     )['avg_rate'] or 0
 
-    
     total_projects = projects.count()
 
-    
     total_withdrawals = UserLedger.objects.filter(
         transaction__user=request.user,
         withdrawal__gt=0
     ).aggregate(total=Sum('withdrawal'))['total'] or Decimal('0.00')
 
     context = {
-        'ledger_entries': ledger_entries,
+        'page_obj': page_obj,  # Changed from ledger_entries to page_obj
         'total_investment': total_investment,
         'total_balance': total_balance,
         'avg_interest_rate': avg_interest_rate,
@@ -697,7 +857,6 @@ def ledger_view(request):
     }
 
     return render(request, 'ledger.html', context)
-
 
 
 
@@ -809,33 +968,51 @@ def admin_dashboard(request):
 
 
 
+# @login_required
+# def edit_profile(request):
+#     if request.method == 'POST':
+        
+#         user_form = UserEditForm(request.POST, instance=request.user)
+#         password_form = PasswordEditForm(request.user, request.POST)
+
+#         if 'update_profile' in request.POST:
+#             if user_form.is_valid():
+#                 user_form.save()
+#                 messages.success(request, 'Your profile was successfully updated!')
+#                 return redirect('ledger_view')  
+
+#         elif 'change_password' in request.POST:
+#             if password_form.is_valid():
+#                 user = password_form.save()
+#                 update_session_auth_hash(request, user) 
+#                 messages.success(request, 'Your password was successfully updated!')
+#                 return redirect('ledger_view') 
+#     else:
+#         user_form = UserEditForm(instance=request.user)
+#         password_form = PasswordEditForm(request.user)
+
+#     return render(request, 'User/edit_profile.html', {
+#         'user_form': user_form,
+#         'password_form': password_form,
+#     })
+
 @login_required
 def edit_profile(request):
     if request.method == 'POST':
-        
         user_form = UserEditForm(request.POST, instance=request.user)
-        password_form = PasswordEditForm(request.user, request.POST)
 
-        if 'update_profile' in request.POST:
-            if user_form.is_valid():
-                user_form.save()
-                messages.success(request, 'Your profile was successfully updated!')
-                return redirect('ledger_view')  
+        if user_form.is_valid():
+            user_form.save()
+            messages.success(request, 'Your profile was successfully updated!')
+            return redirect('ledger_view')
 
-        elif 'change_password' in request.POST:
-            if password_form.is_valid():
-                user = password_form.save()
-                update_session_auth_hash(request, user) 
-                messages.success(request, 'Your password was successfully updated!')
-                return redirect('ledger_view') 
     else:
         user_form = UserEditForm(instance=request.user)
-        password_form = PasswordEditForm(request.user)
 
     return render(request, 'User/edit_profile.html', {
         'user_form': user_form,
-        'password_form': password_form,
     })
+
 
 
 
@@ -1083,28 +1260,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render, redirect
 
-@user_passes_test(lambda u: u.is_staff)
-def staff_create_transaction(request):
-    if request.method == 'POST':
-        form = StaffTransactionForm(request.POST, request.FILES)
-        if form.is_valid():
-            transaction = form.save(commit=False)
-            transaction.status = 'approved'
-            
-            # Get ROI from the project (using min_roi as default)
-            project = form.cleaned_data['project']
-            transaction.return_period = 'custom'  # Set appropriate return period
-            
-            transaction.save()
-            
-            messages.success(request, 'Transaction created successfully!')
-            return redirect('staff_dashboard')
-    else:
-        form = StaffTransactionForm()
-    
-    return render(request, 'admin_transactions.html', {'form': form})
-
-
 
 
 # documents/views.py
@@ -1160,14 +1315,70 @@ def delete_document(request, doc_id):
 
 
 
+# @staff_member_required
+# def pending_transactions_view(request):
+#     # Get all pending transactions (both investment and withdrawal)
+#     pending_transactions = Transaction.objects.filter(status='pending').order_by('-transaction_date')
+    
+#     return render(request, 'pending_transactions.html', {
+#         'pending_transactions': pending_transactions
+#     })
+    
+    
+# @user_passes_test(lambda u: u.is_staff)
+# def staff_create_transaction(request):
+#     if request.method == 'POST':
+#         form = StaffTransactionForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             transaction = form.save(commit=False)
+#             transaction.status = 'approved'
+            
+#             # Get ROI from the project (using min_roi as default)
+#             project = form.cleaned_data['project']
+#             transaction.return_period = 'custom'  # Set appropriate return period
+            
+#             transaction.save()
+            
+#             messages.success(request, 'Transaction created successfully!')
+#             return redirect('staff_dashboard')
+#     else:
+#         form = StaffTransactionForm()
+    
+#     return render(request, 'admin_transactions.html', {'form': form})
+
+
+from django.core.paginator import Paginator
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import Transaction
+from .forms import StaffTransactionForm
+
 @staff_member_required
-def pending_transactions_view(request):
-    # Get all pending transactions (both investment and withdrawal)
+def staff_transactions_view(request):
+    # Handle transaction creation
+    if request.method == 'POST' and 'create_transaction' in request.POST:
+        form = StaffTransactionForm(request.POST, request.FILES)
+        if form.is_valid():
+            transaction = form.save(commit=False)
+            transaction.status = 'approved'
+            project = form.cleaned_data['project']
+            transaction.return_period = 'custom'
+            transaction.save()
+            messages.success(request, 'Transaction created successfully!')
+            return redirect('pend')
+    else:
+        form = StaffTransactionForm()
+
+    # Get pending transactions with pagination
     pending_transactions = Transaction.objects.filter(status='pending').order_by('-transaction_date')
-    
-    return render(request, 'pending_transactions.html', {
-        'pending_transactions': pending_transactions
-    })
-    
-    
-    
+    paginator = Paginator(pending_transactions, 10)  # 10 pending transactions per page
+    page_number = request.GET.get('page')
+    pending_page_obj = paginator.get_page(page_number)
+
+    context = {
+        'form': form,
+        'pending_page_obj': pending_page_obj,
+    }
+    return render(request, 'pending_transactions.html', context)    

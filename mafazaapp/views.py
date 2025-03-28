@@ -447,6 +447,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Transaction
 
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
 # def upload_receipt(request, transaction_id):
 #     transaction = get_object_or_404(Transaction, id=transaction_id)
 
@@ -464,7 +469,7 @@ from .models import Transaction
 #             ledger_entry.receipt = receipt_file
 #             ledger_entry.save()
 
-#         messages.success(request, "Receipt uploaded and transaction approved successfully!")
+#         messages.success(request, "Transaction approved and receipt uploaded successfully!")
 #         return redirect("ledger_view")
 
 #     messages.error(request, "Failed to upload receipt. Please try again.")
@@ -476,25 +481,33 @@ from django.contrib import messages
 def upload_receipt(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id)
 
-    if request.method == "POST" and request.FILES.get("receipt"):
-        receipt_file = request.FILES["receipt"]
+    if transaction.transaction_type == "withdrawal":
+        # Withdrawal requires receipt
+        if request.method == "POST" and request.FILES.get("receipt"):
+            receipt_file = request.FILES["receipt"]
+            
+            transaction.receipt = receipt_file
+            transaction.status = "approved"
+            transaction.save()
+
+            # Update corresponding ledger entry
+            ledger_entry = UserLedger.objects.filter(transaction=transaction).first()
+            if ledger_entry:
+                ledger_entry.receipt = receipt_file
+                ledger_entry.save()
+
+            messages.success(request, "Withdrawal approved and receipt uploaded successfully!")
+        else:
+            messages.error(request, "Receipt is required for withdrawal approval.")
         
-        # Update transaction
-        transaction.receipt = receipt_file
+    else:
+        # Investment approval (No receipt required)
         transaction.status = "approved"
         transaction.save()
+        messages.success(request, "Investment approved successfully!")
 
-        # Update corresponding ledger entry
-        ledger_entry = UserLedger.objects.filter(transaction=transaction).first()
-        if ledger_entry:
-            ledger_entry.receipt = receipt_file
-            ledger_entry.save()
-
-        messages.success(request, "Transaction approved and receipt uploaded successfully!")
-        return redirect("ledger_view")
-
-    messages.error(request, "Failed to upload receipt. Please try again.")
     return redirect("ledger_view")
+
 
 
 

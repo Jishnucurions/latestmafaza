@@ -637,33 +637,41 @@
              {% endcomment %}
 
              <form id="receipt-form-{{ transaction.id }}" 
-      action="{% url 'upload_receipt' transaction.id %}" 
-      method="POST" 
-      enctype="multipart/form-data" 
-      style="display: none;">
-    {% csrf_token %}
-    <input type="file" name="receipt" id="file-input-{{ transaction.id }}" accept="image/*" hidden required>
-</form>
-
-<td class="text-center text-xx font-weight-bolder align-middle">
-    {% if transaction.status == "pending" %}
-        <!-- Approve Button -->
-        <button class="badge badge-sm kaala border-0 me-3" 
-                onclick="approveTransaction('{{ transaction.id }}')">
-            Approve
-        </button>
-
-        <!-- Reject Button -->
-        <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" 
-           class="badge badge-sm kala border-0 me-3">
-            Reject
-        </a>
-    {% elif transaction.status == "approved" %}
-        <span class="badge badge-sm kala border-0 me-3">Approved</span>
-    {% elif transaction.status == "rejected" %}
-        <span class="badge badge-sm bg-gradient-danger">Rejected</span>
-    {% endif %}
-</td>
+             action="{% url 'upload_receipt' transaction.id %}" 
+             method="POST" 
+             enctype="multipart/form-data" 
+             style="display: none;">
+           {% csrf_token %}
+           <input type="file" name="receipt" id="file-input-{{ transaction.id }}" accept="image/*" hidden required>
+       </form>
+       
+       <td class="text-center text-xx font-weight-bolder align-middle">
+           {% if transaction.status == "pending" %}
+               {% if transaction.transaction_type == "withdrawal" %}
+                   <!-- Approve Button (For Withdrawals - Requires Receipt) -->
+                   <button class="badge badge-sm kaala border-0 me-3" 
+                           onclick="approveTransaction('{{ transaction.id }}')">
+                       Approve
+                   </button>
+               {% else %}
+                   <!-- Approve Button (For Investments - Direct Approval) -->
+                   <a href="{% url 'update_transaction_status' transaction.id 'approved' %}" 
+                      class="badge badge-sm kaala border-0 me-3">
+                       Approve
+                   </a>
+               {% endif %}
+       
+               <!-- Reject Button (For Both) -->
+               <a href="{% url 'update_transaction_status' transaction.id 'rejected' %}" 
+                  class="badge badge-sm kala border-0 me-3">
+                   Reject
+               </a>
+           {% elif transaction.status == "approved" %}
+               <span class="badge badge-sm kala border-0 me-3">Approved</span>
+           {% elif transaction.status == "rejected" %}
+               <span class="badge badge-sm bg-gradient-danger">Rejected</span>
+           {% endif %}
+       </td>
             </tr>
             {% empty %}
             <tr>
